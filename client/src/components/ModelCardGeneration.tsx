@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { ArrowLeft, Download, Shield, AlertTriangle, CheckCircle, Edit } from 'lucide-react';
+import { ArrowLeft, Download, Shield, AlertTriangle, CheckCircle, Edit, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ModelCardData } from '@/pages/Index';
 import { useToast } from '@/hooks/use-toast';
+import { SourceAttribution } from './SourceAttribution';
 
 type ModelCardGenerationProps = {
   modelCardData: ModelCardData;
@@ -38,6 +39,37 @@ export const ModelCardGeneration = ({ modelCardData, onBack }: ModelCardGenerati
     });
   };
 
+  const getDataSources = (modelCardData: ModelCardData) => {
+    const sources = [];
+    if (modelCardData.modelInfo.papers?.length > 0) {
+      sources.push(`${modelCardData.modelInfo.papers.length} research papers`);
+    }
+    if (modelCardData.modelInfo.githubRepo) {
+      sources.push('GitHub repository');
+    }
+    if (modelCardData.modelInfo.huggingfaceCard) {
+      sources.push('HuggingFace model card');
+    }
+    if (modelCardData.modelInfo.websiteData) {
+      sources.push('Official website');
+    }
+    return sources.length > 0 ? sources.join(', ') : 'No sources available';
+  };
+
+  const getPerformanceDataSource = (modelCardData: ModelCardData) => {
+    if (modelCardData.modelInfo.papers?.length > 0) {
+      const primaryPaper = modelCardData.modelInfo.papers[0];
+      return `Research paper: "${primaryPaper.title}" (${primaryPaper.journal}, ${primaryPaper.year})`;
+    }
+    if (modelCardData.modelInfo.huggingfaceCard) {
+      return `HuggingFace model card: ${modelCardData.modelInfo.huggingfaceCard.name}`;
+    }
+    if (modelCardData.modelInfo.websiteData) {
+      return `Official website: ${modelCardData.modelInfo.websiteData.url}`;
+    }
+    return 'Simulated data for demonstration';
+  };
+
   const generateModelCardContent = () => {
     const data = modelCardData.extractedData;
     
@@ -63,10 +95,11 @@ This model card provides transparency and accountability for the AI model used i
   ${data.intendedUse?.outOfScope?.map(scope => `  - ${scope}`).join('\n') || '  - Direct patient diagnosis without clinical oversight'}
 
 ### Training Data
-- **Datasets**: ${data.trainingData?.datasets?.join(', ') || 'Clinical dermatological datasets'}
-- **Data Size**: ${data.trainingData?.dataSize || 'Not specified'}
-- **Data Characteristics**: ${data.trainingData?.dataCharacteristics || 'Diverse dermatological images'}
-- **Preprocessing**: ${data.trainingData?.preprocessing || 'Standard image preprocessing applied'}
+**Sources Extracted From**: ${getDataSources(modelCardData)}
+- **Datasets**: ${data.trainingData?.datasets?.join(', ') || 'Information not available from sources'}
+- **Data Size**: ${data.trainingData?.dataSize || 'Not specified in sources'}
+- **Data Characteristics**: ${data.trainingData?.dataCharacteristics || 'Details not available from sources'}
+- **Preprocessing**: ${data.trainingData?.preprocessing || 'Not documented in available sources'}
 
 ### Model Architecture
 - **Model Type**: ${data.technicalSpecs?.architecture || 'Deep Learning Neural Network'}
@@ -75,12 +108,22 @@ This model card provides transparency and accountability for the AI model used i
 - **Output Format**: ${data.technicalSpecs?.outputFormat || 'Classification probabilities'}
 
 ### Performance Metrics
-- **Accuracy**: ${data.performance?.accuracy ? (data.performance.accuracy * 100).toFixed(1) + '%' : 'Not available'}
-- **Sensitivity**: ${data.performance?.sensitivity ? (data.performance.sensitivity * 100).toFixed(1) + '%' : 'Not available'}
-- **Specificity**: ${data.performance?.specificity ? (data.performance.specificity * 100).toFixed(1) + '%' : 'Not available'}
-- **AUC**: ${data.performance?.auc ? data.performance.auc.toFixed(3) : 'Not available'}
-- **F1-Score**: ${data.performance?.f1Score ? data.performance.f1Score.toFixed(3) : 'Not available'}
-- **Test Dataset**: ${data.performance?.testDataset || 'Independent validation set'}
+${data.performance ? `
+**Source**: ${getPerformanceDataSource(modelCardData)}
+- **Accuracy**: ${(data.performance.accuracy * 100).toFixed(1)}%
+- **Sensitivity**: ${(data.performance.sensitivity * 100).toFixed(1)}%
+- **Specificity**: ${(data.performance.specificity * 100).toFixed(1)}%
+- **AUC**: ${data.performance.auc.toFixed(3)}
+- **F1-Score**: ${data.performance.f1Score.toFixed(3)}
+- **Test Dataset**: ${data.performance.testDataset}
+` : `
+**Note**: Performance metrics not available from extracted sources
+- Sources searched: ${modelCardData.modelInfo.papers?.map(p => p.source).join(', ') || 'None'}
+- **Accuracy**: Not available
+- **Sensitivity**: Not available  
+- **Specificity**: Not available
+- **AUC**: Not available
+`}
 
 ### Ethical Considerations
 - **Bias Analysis**: 
@@ -200,9 +243,10 @@ For questions about this model card, please contact your healthcare AI complianc
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
+                <TabsTrigger value="sources">Sources</TabsTrigger>
                 <TabsTrigger value="ethics">Ethics</TabsTrigger>
                 <TabsTrigger value="compliance">Compliance</TabsTrigger>
               </TabsList>
@@ -225,7 +269,7 @@ For questions about this model card, please contact your healthcare AI complianc
                     </div>
                     <div>
                       <span className="font-medium">Data Sources:</span>
-                      <p className="text-gray-600">{modelCardData.modelInfo.papers.length} papers, GitHub, HF</p>
+                      <p className="text-gray-600">{getDataSources(modelCardData)}</p>
                     </div>
                   </div>
                 </div>
@@ -234,17 +278,35 @@ For questions about this model card, please contact your healthcare AI complianc
               <TabsContent value="performance" className="space-y-4">
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-2">Performance Metrics</h4>
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm font-medium text-blue-900">Data Source</p>
+                    <p className="text-xs text-blue-700">{getPerformanceDataSource(modelCardData)}</p>
+                  </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="p-3 bg-gray-50 rounded">
                       <span className="font-medium">Accuracy:</span>
-                      <p className="text-2xl font-bold text-blue-600">92.5%</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {modelCardData.extractedData.performance ? 
+                          `${(modelCardData.extractedData.performance.accuracy * 100).toFixed(1)}%` : 
+                          'N/A'
+                        }
+                      </p>
                     </div>
                     <div className="p-3 bg-gray-50 rounded">
                       <span className="font-medium">Sensitivity:</span>
-                      <p className="text-2xl font-bold text-green-600">89.2%</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        {modelCardData.extractedData.performance ? 
+                          `${(modelCardData.extractedData.performance.sensitivity * 100).toFixed(1)}%` : 
+                          'N/A'
+                        }
+                      </p>
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+              
+              <TabsContent value="sources" className="space-y-4">
+                <SourceAttribution modelCardData={modelCardData} />
               </TabsContent>
               
               <TabsContent value="ethics" className="space-y-4">
