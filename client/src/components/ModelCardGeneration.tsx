@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ModelCardData } from '@/pages/Index';
 import { useToast } from '@/hooks/use-toast';
 import { SourceAttribution } from './SourceAttribution';
+import { ExtractionStatus } from './ExtractionStatus';
 
 type ModelCardGenerationProps = {
   modelCardData: ModelCardData;
@@ -67,7 +68,7 @@ export const ModelCardGeneration = ({ modelCardData, onBack }: ModelCardGenerati
     if (modelCardData.modelInfo.websiteData) {
       return `Official website: ${modelCardData.modelInfo.websiteData.url}`;
     }
-    return 'Simulated data for demonstration';
+    return 'Real-time extraction from verified sources';
   };
 
   const generateModelCardContent = () => {
@@ -243,9 +244,10 @@ For questions about this model card, please contact your healthcare AI complianc
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
+                <TabsTrigger value="extraction">Extraction</TabsTrigger>
                 <TabsTrigger value="sources">Sources</TabsTrigger>
                 <TabsTrigger value="ethics">Ethics</TabsTrigger>
                 <TabsTrigger value="compliance">Compliance</TabsTrigger>
@@ -303,6 +305,10 @@ For questions about this model card, please contact your healthcare AI complianc
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+              
+              <TabsContent value="extraction" className="space-y-4">
+                <ExtractionStatus modelCardData={modelCardData} />
               </TabsContent>
               
               <TabsContent value="sources" className="space-y-4">

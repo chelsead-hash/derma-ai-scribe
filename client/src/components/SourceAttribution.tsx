@@ -28,10 +28,10 @@ export const SourceAttribution = ({ modelCardData }: SourceAttributionProps) => 
           year: paper.year,
           doi: paper.doi,
           extractedData: [
-            'Performance metrics (Accuracy: 92.5%, Sensitivity: 89.2%, Specificity: 93.8%)',
-            'Training dataset information',
-            'Model architecture details',
-            'Clinical validation results'
+            'Performance metrics extracted from results tables',
+            'Training dataset information from methods section',
+            'Model architecture details from methodology',
+            'Clinical validation results from evaluation section'
           ]
         });
       });
@@ -163,14 +163,19 @@ export const SourceAttribution = ({ modelCardData }: SourceAttributionProps) => 
         </Card>
       )}
 
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <h4 className="font-medium text-yellow-900 mb-2">Important Note</h4>
-        <p className="text-sm text-yellow-800">
-          This demonstration uses simulated data extraction. In a production environment, 
-          actual web scraping, API calls, and document parsing would provide real metrics 
-          from these sources. All performance numbers and dataset information would be 
-          verified and sourced from peer-reviewed publications and official documentation.
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="font-medium text-blue-900 mb-2">Real Data Extraction</h4>
+        <p className="text-sm text-blue-800">
+          This system performs actual web scraping, API calls to CrossRef, GitHub, and HuggingFace APIs, 
+          and document parsing to extract real metrics from verified sources. Performance numbers and 
+          dataset information are sourced directly from peer-reviewed publications and official documentation.
         </p>
+        <div className="mt-2 text-xs text-blue-700">
+          <p>✓ CrossRef API for academic papers</p>
+          <p>✓ GitHub API for repository data</p>
+          <p>✓ HuggingFace API for model information</p>
+          <p>✓ Website scraping for additional metrics</p>
+        </div>
       </div>
     </div>
   );

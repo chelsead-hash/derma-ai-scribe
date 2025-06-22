@@ -1,11 +1,64 @@
 
 export class CardgenService {
   static async extractModelCardData(modelInfo: any) {
-    console.log('Extracting model card data using Cardgen pipeline');
+    console.log('Extracting model card data using real data sources');
     
-    // Simulate the Cardgen pipeline process
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    try {
+      // Extract real data from available sources
+      let extractedData: any = {};
+      
+      // Extract from papers if available
+      if (modelInfo.papers && modelInfo.papers.length > 0) {
+        for (const paper of modelInfo.papers.slice(0, 2)) {
+          if (paper.doi && paper.isReal) {
+            try {
+              const paperData = await this.parseResearchPaper(paper);
+              extractedData = { ...extractedData, ...paperData };
+            } catch (error) {
+              console.warn('Failed to extract from paper:', paper.doi);
+            }
+          }
+        }
+      }
+      
+      // Extract from GitHub if available
+      if (modelInfo.githubRepo && modelInfo.githubRepo.isReal) {
+        try {
+          const githubData = await this.parseGitHubRepo(modelInfo.githubRepo);
+          extractedData = { ...extractedData, ...githubData };
+        } catch (error) {
+          console.warn('Failed to extract from GitHub repo');
+        }
+      }
+      
+      // Extract from HuggingFace if available
+      if (modelInfo.huggingfaceCard && modelInfo.huggingfaceCard.isReal) {
+        try {
+          const hfData = await this.parseHuggingFaceCard(modelInfo.huggingfaceCard);
+          extractedData = { ...extractedData, ...hfData };
+        } catch (error) {
+          console.warn('Failed to extract from HuggingFace');
+        }
+      }
+      
+      // Extract from website if available
+      if (modelInfo.websiteData) {
+        try {
+          const websiteMetrics = this.parseWebsiteData(modelInfo.websiteData);
+          extractedData = { ...extractedData, ...websiteMetrics };
+        } catch (error) {
+          console.warn('Failed to extract from website');
+        }
+      }
+      
+      return this.buildStructuredModelCard(extractedData, modelInfo);
+    } catch (error) {
+      console.error('Data extraction failed:', error);
+      return this.buildFallbackModelCard(modelInfo);
+    }
+  }
+
+  static buildStructuredModelCard(extractedData: any, modelInfo: any) {
     return {
       modelOverview: {
         name: modelInfo.name,
@@ -31,31 +84,29 @@ export class CardgenService {
           'Pediatric applications without validation'
         ]
       },
-      technicalSpecs: {
-        architecture: 'Convolutional Neural Network',
-        framework: 'TensorFlow/PyTorch',
-        inputFormat: 'RGB images (224x224 pixels)',
-        outputFormat: 'Classification probabilities',
-        modelSize: '45MB',
-        inferenceTime: '150ms average'
+      technicalSpecs: extractedData.technicalSpecs || {
+        architecture: extractedData.methodology || 'Architecture not specified in sources',
+        framework: 'Framework not documented in available sources',
+        inputFormat: 'Input format not specified',
+        outputFormat: 'Output format not documented',
+        modelSize: 'Model size not available',
+        inferenceTime: 'Inference time not documented'
       },
-      trainingData: {
-        datasets: [
-          'International Skin Imaging Collaboration (ISIC)',
-          'Dermatology Image Database',
-          'Clinical partner institutions'
-        ],
-        dataSize: '50,000+ dermatological images',
-        dataCharacteristics: 'Diverse skin types, lesion types, and demographics',
-        preprocessing: 'Standardized image normalization and augmentation'
+      trainingData: extractedData.datasetInfo || {
+        datasets: ['Dataset information not available from verified sources'],
+        dataSize: 'Not specified in available sources',
+        dataCharacteristics: 'Dataset characteristics not documented in sources',
+        preprocessing: 'Preprocessing details not available',
+        extractionSource: 'No verified sources with dataset information'
       },
-      performance: {
-        accuracy: 0.925,
-        sensitivity: 0.892,
-        specificity: 0.938,
-        auc: 0.915,
-        f1Score: 0.903,
-        testDataset: 'Hold-out test set (10,000 images)'
+      performance: extractedData.performanceMetrics || {
+        accuracy: null,
+        sensitivity: null,
+        specificity: null,
+        auc: null,
+        f1Score: null,
+        testDataset: 'Performance metrics not available from sources',
+        extractionSource: 'No verified sources with performance data'
       },
       ethicalConsiderations: {
         biasAnalysis: [
@@ -86,6 +137,66 @@ export class CardgenService {
           'Data anonymization and encryption protocols'
         ]
       }
+    };
+  }
+
+  static buildFallbackModelCard(modelInfo: any) {
+    return {
+      modelOverview: {
+        name: modelInfo.name,
+        type: 'AI Model (Type not determined from sources)',
+        version: 'Unknown',
+        lastUpdated: new Date().toISOString(),
+        description: `Limited information available for ${modelInfo.name} from verified sources.`
+      },
+      intendedUse: {
+        primaryUseCases: ['Use cases not documented in available sources'],
+        primaryUsers: ['Target users not specified'],
+        outOfScope: ['Limitations not documented in sources']
+      },
+      technicalSpecs: {
+        architecture: 'Architecture not available from sources',
+        framework: 'Framework not documented',
+        inputFormat: 'Input format not specified',
+        outputFormat: 'Output format not documented'
+      },
+      trainingData: {
+        datasets: ['Training data not documented in sources'],
+        dataSize: 'Not available',
+        dataCharacteristics: 'Not documented',
+        preprocessing: 'Not available'
+      },
+      performance: {
+        accuracy: null,
+        sensitivity: null,
+        specificity: null,
+        auc: null,
+        f1Score: null,
+        testDataset: 'Performance data not available from verified sources'
+      },
+      ethicalConsiderations: {
+        biasAnalysis: ['Bias analysis not documented in available sources'],
+        fairnessMetrics: {},
+        limitations: ['Limitations not documented in sources']
+      },
+      extractionMetadata: {
+        sourcesSearched: modelInfo.searchMetadata || {},
+        extractionAttempted: true,
+        realDataFound: false,
+        extractionDate: new Date().toISOString()
+      }
+    };
+  }
+
+  static parseWebsiteData(websiteData: any) {
+    if (!websiteData || !websiteData.metrics) {
+      return {};
+    }
+    
+    return {
+      performanceMetrics: websiteData.metrics,
+      datasetInfo: websiteData.datasetInfo,
+      technicalSpecs: websiteData.technicalSpecs
     };
   }
 
