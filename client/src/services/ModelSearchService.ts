@@ -258,15 +258,4 @@ export class ModelSearchService {
     };
   }
 
-  static async searchHuggingFace(modelName: string) {
-    // Simulate HuggingFace Hub search
-    console.log('Searching HuggingFace for:', modelName);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return {
-      name: `organization/${modelName.toLowerCase()}`,
-      description: `${modelName} model for dermatology`,
-      modelCard: 'Model card content with technical details...'
-    };
-  }
 }

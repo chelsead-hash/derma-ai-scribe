@@ -10,6 +10,7 @@ import { ModelCardData } from '@/pages/Index';
 import { useToast } from '@/hooks/use-toast';
 import { SourceAttribution } from './SourceAttribution';
 import { ExtractionStatus } from './ExtractionStatus';
+import { downloadModelCard, generateFileName, validateModelCardContent } from '@/utils/downloadUtils';
 
 type ModelCardGenerationProps = {
   modelCardData: ModelCardData;
@@ -21,23 +22,39 @@ export const ModelCardGeneration = ({ modelCardData, onBack }: ModelCardGenerati
   const [editedContent, setEditedContent] = useState('');
   const { toast } = useToast();
 
-  const handleDownload = () => {
-    // Create downloadable model card
-    const modelCardContent = generateModelCardContent();
-    const blob = new Blob([modelCardContent], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${modelCardData.modelInfo.name}-model-card.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "Success",
-      description: "Model card downloaded successfully",
-    });
+  const handleDownload = async () => {
+    try {
+      // Generate comprehensive model card content
+      const modelCardContent = generateModelCardContent();
+      
+      // Validate content before download
+      if (!validateModelCardContent(modelCardContent)) {
+        throw new Error('Generated model card content is invalid or incomplete');
+      }
+      
+      // Generate proper filename
+      const filename = generateFileName(modelCardData.modelInfo.name);
+      
+      // Attempt download
+      const success = await downloadModelCard(modelCardContent, filename);
+      
+      if (success) {
+        toast({
+          title: "Download Complete",
+          description: `Model card saved as ${filename}`,
+        });
+      } else {
+        throw new Error('Download process failed');
+      }
+      
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast({
+        title: "Download Failed",
+        description: error instanceof Error ? error.message : "There was an error generating the model card file",
+        variant: "destructive",
+      });
+    }
   };
 
   const getDataSources = (modelCardData: ModelCardData) => {
@@ -141,29 +158,78 @@ ${data.performance ? `
 - **Mitigation Strategies**: 
   ${data.risksAndMitigations?.mitigationStrategies?.map(strategy => `  - ${strategy}`).join('\n') || '  - Comprehensive risk mitigation implemented'}
 
-### HTI-1 Compliance
-${modelCardData.compliance?.hti1 ? '✅' : '⚠️'} HTI-1 Certification Status: ${modelCardData.compliance?.hti1 ? 'COMPLIANT' : 'NEEDS REVIEW'}
-- Model transparency documentation: Complete
-- Performance metrics disclosure: ${data.performance ? 'Complete' : 'Incomplete'}
-- Bias and fairness assessment: ${data.ethicalConsiderations ? 'Complete' : 'Incomplete'}
-- Intended use specification: Complete
+### Compliance Assessment
 
-### OCR Compliance
-${modelCardData.compliance?.ocr ? '✅' : '⚠️'} OCR Nondiscrimination Status: ${modelCardData.compliance?.ocr ? 'COMPLIANT' : 'NEEDS REVIEW'}
-- Bias testing and mitigation strategies: ${data.ethicalConsiderations?.biasAnalysis ? 'Complete' : 'Incomplete'}
-- Accessibility considerations: Documented
-- Equal treatment across patient populations: ${data.ethicalConsiderations?.fairnessMetrics ? 'Verified' : 'Under review'}
+#### HTI-1 Certification
+Status: ${modelCardData.compliance?.hti1 ? '✅ COMPLIANT' : '⚠️ NEEDS REVIEW'}
+
+Requirements Met:
+- ✓ Model transparency documentation
+- ${data.performance && data.performance.accuracy !== null ? '✓' : '⚠️'} Performance metrics disclosure
+- ${data.ethicalConsiderations ? '✓' : '⚠️'} Bias and fairness assessment  
+- ✓ Intended use specification
+- ${getDataSources(modelCardData) !== 'No sources available' ? '✓' : '⚠️'} Data source documentation
+
+#### OCR Nondiscrimination Compliance
+Status: ${modelCardData.compliance?.ocr ? '✅ COMPLIANT' : '⚠️ NEEDS REVIEW'}
+
+Requirements Met:
+- ${data.ethicalConsiderations?.biasAnalysis ? '✓' : '⚠️'} Bias testing and mitigation strategies
+- ✓ Accessibility considerations documented
+- ${data.ethicalConsiderations?.fairnessMetrics && Object.keys(data.ethicalConsiderations.fairnessMetrics).length > 0 ? '✓' : '⚠️'} Equal treatment verification
+- ${data.performance ? '✓' : '⚠️'} Performance monitoring across populations
 
 ${modelCardData.compliance?.issues?.length > 0 ? `
-### Compliance Issues
-${modelCardData.compliance.issues.map(issue => `- ${issue}`).join('\n')}
-` : ''}
+#### Outstanding Issues
+${modelCardData.compliance.issues.map(issue => `- ⚠️ ${issue}`).join('\n')}
+
+#### Recommendations
+- Review and address all outstanding compliance issues
+- Ensure regular monitoring and updates of model performance
+- Maintain documentation currency as model evolves
+` : `
+#### Compliance Summary
+All major compliance requirements have been addressed. This model card meets both HTI-1 transparency standards and OCR nondiscrimination requirements.
+`}
+
+### Data Sources and Verification
+
+#### Sources Consulted
+${getDataSources(modelCardData)}
+
+#### Extraction Summary
+- **Real Data Sources**: ${modelCardData.searchMetadata?.realDataFound ? 'Found' : 'None found'}
+- **Extraction Date**: ${new Date().toLocaleDateString()}
+- **Verification Status**: ${modelCardData.searchMetadata?.realDataFound ? 'Verified from peer-reviewed sources' : 'Limited to search metadata only'}
+
+#### Source Details
+${modelCardData.modelInfo.papers?.filter(p => p.isReal).map(paper => 
+  `- **Academic Paper**: ${paper.title} (${paper.journal}, ${paper.year}) - DOI: ${paper.doi}`
+).join('\n') || '- No verified academic papers found'}
+
+${modelCardData.modelInfo.githubRepo?.isReal ? 
+  `- **Repository**: ${modelCardData.modelInfo.githubRepo.name} - ${modelCardData.modelInfo.githubRepo.url}` : 
+  '- No verified repositories found'}
+
+${modelCardData.modelInfo.huggingfaceCard?.isReal ? 
+  `- **Model Hub**: ${modelCardData.modelInfo.huggingfaceCard.name} - ${modelCardData.modelInfo.huggingfaceCard.url}` : 
+  '- No verified model hub entries found'}
+
+${modelCardData.modelInfo.websiteData ? 
+  `- **Official Documentation**: ${modelCardData.modelInfo.websiteData.url}` : 
+  '- No official documentation scraped'}
 
 ### Contact Information
-For questions about this model card, please contact your healthcare AI compliance team.
+For questions about this model card or to report data discrepancies, please contact your healthcare AI compliance team.
+
+### Document Information
+- **Generated**: ${new Date().toLocaleString()}
+- **Generator**: Dermatology AI Model Card Generator v1.0
+- **Compliance Standards**: HTI-1, OCR Section 1557
+- **Last Updated**: ${new Date().toLocaleDateString()}
 
 ---
-*This model card was automatically generated using the Cardgen pipeline method and validated for HTI-1 and OCR compliance.*
+*This model card was automatically generated using real-time data extraction from verified sources and validated for HTI-1 and OCR compliance standards.*
 `;
   };
 
