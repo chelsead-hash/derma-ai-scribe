@@ -1,8 +1,9 @@
-
 import { useState } from 'react';
-import { Search, Loader2, Plus } from 'lucide-react';
+import { Search, Loader2, Globe, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { ModelSearchService } from '@/services/ModelSearchService';
 import { ModelInfo } from '@/pages/Index';
@@ -15,14 +16,25 @@ export const SearchStep = ({ onModelFound }: SearchStepProps) => {
   const [modelName, setModelName] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [showWebsiteInput, setShowWebsiteInput] = useState(false);
+  const [searchType, setSearchType] = useState('name');
   const { toast } = useToast();
 
   const handleSearch = async () => {
-    if (!modelName.trim()) {
+    const searchQuery = searchType === 'name' ? modelName.trim() : websiteUrl.trim();
+    
+    if (!searchQuery) {
       toast({
         title: "Error",
-        description: "Please enter a model name",
+        description: `Please enter a ${searchType === 'name' ? 'model name' : 'website URL'}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (searchType === 'website' && !isValidUrl(websiteUrl)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid website URL",
         variant: "destructive",
       });
       return;
@@ -31,8 +43,10 @@ export const SearchStep = ({ onModelFound }: SearchStepProps) => {
     setIsSearching(true);
     
     try {
-      console.log('Searching for model:', modelName);
-      const modelInfo = await ModelSearchService.searchModel(modelName, websiteUrl);
+      console.log('Searching for model:', searchQuery);
+      const modelInfo = searchType === 'name' 
+        ? await ModelSearchService.searchModel(modelName, undefined)
+        : await ModelSearchService.searchModelByWebsite(websiteUrl);
       
       if (modelInfo.confidence > 0.3) {
         toast({
@@ -59,67 +73,81 @@ export const SearchStep = ({ onModelFound }: SearchStepProps) => {
     }
   };
 
+  const isValidUrl = (string: string) => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Search for Dermatology AI Model
+          Search for AI Model
         </h2>
         <p className="text-gray-600">
-          Enter the name of the dermatology AI model you want to generate a model card for
+          Search by model name or website URL to begin automated model card generation
         </p>
       </div>
 
-      <div className="max-w-md mx-auto space-y-4">
-        <div>
-          <label htmlFor="model-name" className="block text-sm font-medium text-gray-700 mb-2">
-            Model Name *
-          </label>
-          <Input
-            id="model-name"
-            type="text"
-            value={modelName}
-            onChange={(e) => setModelName(e.target.value)}
-            placeholder="e.g., DermNet, SkinVision, MoleMapper"
-            className="w-full"
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-          />
-        </div>
-
-        {!showWebsiteInput && (
-          <Button
-            variant="outline"
-            onClick={() => setShowWebsiteInput(true)}
-            className="w-full"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Website URL (Optional)
-          </Button>
-        )}
-
-        {showWebsiteInput && (
-          <div>
-            <label htmlFor="website-url" className="block text-sm font-medium text-gray-700 mb-2">
-              Model Website URL (Optional)
-            </label>
-            <Input
-              id="website-url"
-              type="url"
-              value={websiteUrl}
-              onChange={(e) => setWebsiteUrl(e.target.value)}
-              placeholder="https://example.com/model-info"
-              className="w-full"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Add a website URL if the model has a dedicated information page
-            </p>
-          </div>
-        )}
+      <div className="max-w-lg mx-auto">
+        <Tabs value={searchType} onValueChange={setSearchType} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="name" className="flex items-center space-x-2">
+              <FileText className="h-4 w-4" />
+              <span>Model Name</span>
+            </TabsTrigger>
+            <TabsTrigger value="website" className="flex items-center space-x-2">
+              <Globe className="h-4 w-4" />
+              <span>Website URL</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="name" className="space-y-4 mt-6">
+            <div className="space-y-2">
+              <Label htmlFor="modelName">Model Name</Label>
+              <Input
+                id="modelName"
+                type="text"
+                placeholder="e.g., DermNet, SkinCancer-AI, MoleMapper"
+                value={modelName}
+                onChange={(e) => setModelName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500">
+                Enter the name of the dermatology AI model you want to generate a card for
+              </p>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="website" className="space-y-4 mt-6">
+            <div className="space-y-2">
+              <Label htmlFor="websiteUrl">Website URL</Label>
+              <Input
+                id="websiteUrl"
+                type="url"
+                placeholder="https://example.com/model-documentation"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500">
+                Enter the URL of a website containing model documentation or information
+              </p>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <Button
           onClick={handleSearch}
-          disabled={isSearching}
-          className="w-full bg-blue-600 hover:bg-blue-700"
+          disabled={isSearching || (searchType === 'name' && !modelName.trim()) || (searchType === 'website' && !websiteUrl.trim())}
+          className="w-full mt-6"
+          size="lg"
         >
           {isSearching ? (
             <>
@@ -133,17 +161,17 @@ export const SearchStep = ({ onModelFound }: SearchStepProps) => {
             </>
           )}
         </Button>
-      </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto">
-        <h3 className="font-semibold text-blue-900 mb-2">What we'll search for:</h3>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Published research papers (PubMed, arXiv, Google Scholar)</li>
-          <li>• GitHub repositories and README files</li>
-          <li>• HuggingFace model cards and metadata</li>
-          <li>• Website information pages (if URL provided)</li>
-          <li>• Documentation and technical specifications</li>
-        </ul>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+          <h3 className="font-semibold text-blue-900 mb-2">What we'll search for:</h3>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• Published research papers (PubMed, arXiv, Google Scholar)</li>
+            <li>• GitHub repositories and README files</li>
+            <li>• HuggingFace model cards and metadata</li>
+            <li>• Website information and documentation</li>
+            <li>• Technical specifications and performance metrics</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
