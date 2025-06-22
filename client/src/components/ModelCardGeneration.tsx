@@ -58,38 +58,49 @@ export const ModelCardGeneration = ({ modelCardData, onBack }: ModelCardGenerati
   };
 
   const getDataSources = (modelCardData: ModelCardData) => {
-    const sources = [];
-    if (modelCardData.modelInfo.papers?.length > 0) {
-      sources.push(`${modelCardData.modelInfo.papers.length} research papers`);
+    try {
+      const sources = [];
+      if (modelCardData.modelInfo.papers?.length > 0) {
+        sources.push(`${modelCardData.modelInfo.papers.length} research papers`);
+      }
+      if (modelCardData.modelInfo.githubRepo) {
+        sources.push('GitHub repository');
+      }
+      if (modelCardData.modelInfo.huggingfaceCard) {
+        sources.push('HuggingFace model card');
+      }
+      if (modelCardData.modelInfo.websiteData) {
+        sources.push('Official website');
+      }
+      return sources.length > 0 ? sources.join(', ') : 'No sources available';
+    } catch (error) {
+      console.error('Error getting data sources:', error);
+      return 'Source information not available';
     }
-    if (modelCardData.modelInfo.githubRepo) {
-      sources.push('GitHub repository');
-    }
-    if (modelCardData.modelInfo.huggingfaceCard) {
-      sources.push('HuggingFace model card');
-    }
-    if (modelCardData.modelInfo.websiteData) {
-      sources.push('Official website');
-    }
-    return sources.length > 0 ? sources.join(', ') : 'No sources available';
   };
 
   const getPerformanceDataSource = (modelCardData: ModelCardData) => {
-    if (modelCardData.modelInfo.papers?.length > 0) {
-      const primaryPaper = modelCardData.modelInfo.papers[0];
-      return `Research paper: "${primaryPaper.title}" (${primaryPaper.journal}, ${primaryPaper.year})`;
+    try {
+      if (modelCardData.modelInfo.papers?.length > 0) {
+        const primaryPaper = modelCardData.modelInfo.papers[0];
+        return `Research paper: "${primaryPaper.title || 'Unknown Title'}" (${primaryPaper.journal || 'Unknown Journal'}, ${primaryPaper.year || 'Unknown Year'})`;
+      }
+      if (modelCardData.modelInfo.huggingfaceCard) {
+        return `HuggingFace model card: ${modelCardData.modelInfo.huggingfaceCard.name || 'Unknown Model'}`;
+      }
+      if (modelCardData.modelInfo.websiteData) {
+        return `Official website: ${modelCardData.modelInfo.websiteData.url || 'Unknown URL'}`;
+      }
+      return 'Real-time extraction from verified sources';
+    } catch (error) {
+      console.error('Error getting performance data source:', error);
+      return 'Source information not available';
     }
-    if (modelCardData.modelInfo.huggingfaceCard) {
-      return `HuggingFace model card: ${modelCardData.modelInfo.huggingfaceCard.name}`;
-    }
-    if (modelCardData.modelInfo.websiteData) {
-      return `Official website: ${modelCardData.modelInfo.websiteData.url}`;
-    }
-    return 'Real-time extraction from verified sources';
   };
 
   const generateModelCardContent = () => {
-    const data = modelCardData.extractedData;
+    try {
+      const data = modelCardData.extractedData || {};
     
     return `# Model Card: ${modelCardData.modelInfo.name}
 
@@ -128,12 +139,12 @@ This model card provides transparency and accountability for the AI model used i
 ### Performance Metrics
 ${data.performance ? `
 **Source**: ${getPerformanceDataSource(modelCardData)}
-- **Accuracy**: ${(data.performance.accuracy * 100).toFixed(1)}%
-- **Sensitivity**: ${(data.performance.sensitivity * 100).toFixed(1)}%
-- **Specificity**: ${(data.performance.specificity * 100).toFixed(1)}%
-- **AUC**: ${data.performance.auc.toFixed(3)}
-- **F1-Score**: ${data.performance.f1Score.toFixed(3)}
-- **Test Dataset**: ${data.performance.testDataset}
+- **Accuracy**: ${data.performance.accuracy != null ? (data.performance.accuracy * 100).toFixed(1) + '%' : 'Not available'}
+- **Sensitivity**: ${data.performance.sensitivity != null ? (data.performance.sensitivity * 100).toFixed(1) + '%' : 'Not available'}
+- **Specificity**: ${data.performance.specificity != null ? (data.performance.specificity * 100).toFixed(1) + '%' : 'Not available'}
+- **AUC**: ${data.performance.auc != null ? data.performance.auc.toFixed(3) : 'Not available'}
+- **F1-Score**: ${data.performance.f1Score != null ? data.performance.f1Score.toFixed(3) : 'Not available'}
+- **Test Dataset**: ${data.performance.testDataset || 'Not specified'}
 ` : `
 **Note**: Performance metrics not available from extracted sources
 - Sources searched: ${modelCardData.modelInfo.papers?.map(p => p.source).join(', ') || 'None'}
@@ -231,6 +242,19 @@ For questions about this model card or to report data discrepancies, please cont
 ---
 *This model card was automatically generated using real-time data extraction from verified sources and validated for HTI-1 and OCR compliance standards.*
 `;
+    } catch (error) {
+      console.error('Error generating model card content:', error);
+      return `# Model Card Generation Error
+
+An error occurred while generating the model card for ${modelCardData.modelInfo.name}.
+
+Error: ${error instanceof Error ? error.message : 'Unknown error'}
+
+Please try again or contact support if the issue persists.
+
+Generated: ${new Date().toLocaleString()}
+`;
+    }
   };
 
   return (
@@ -354,7 +378,7 @@ For questions about this model card or to report data discrepancies, please cont
                     <div className="p-3 bg-gray-50 rounded">
                       <span className="font-medium">Accuracy:</span>
                       <p className="text-2xl font-bold text-blue-600">
-                        {modelCardData.extractedData.performance ? 
+                        {modelCardData.extractedData.performance && modelCardData.extractedData.performance.accuracy != null ? 
                           `${(modelCardData.extractedData.performance.accuracy * 100).toFixed(1)}%` : 
                           'N/A'
                         }
@@ -363,7 +387,7 @@ For questions about this model card or to report data discrepancies, please cont
                     <div className="p-3 bg-gray-50 rounded">
                       <span className="font-medium">Sensitivity:</span>
                       <p className="text-2xl font-bold text-green-600">
-                        {modelCardData.extractedData.performance ? 
+                        {modelCardData.extractedData.performance && modelCardData.extractedData.performance.sensitivity != null ? 
                           `${(modelCardData.extractedData.performance.sensitivity * 100).toFixed(1)}%` : 
                           'N/A'
                         }

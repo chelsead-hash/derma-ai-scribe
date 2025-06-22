@@ -45,18 +45,30 @@ export const generateFileName = (modelName: string, extension: string = 'md'): s
 };
 
 export const validateModelCardContent = (content: string): boolean => {
-  // Basic validation to ensure the content is not empty and contains key sections
-  if (!content || content.trim().length === 0) {
+  try {
+    // Basic validation to ensure the content is not empty and contains key sections
+    if (!content || content.trim().length === 0) {
+      return false;
+    }
+    
+    // Check for essential sections
+    const requiredSections = [
+      '# Model Card:',
+      '## Model Overview',
+      '### Performance Metrics',
+      '### Compliance Assessment'
+    ];
+    
+    const hasRequiredSections = requiredSections.every(section => content.includes(section));
+    
+    // Check that there are no undefined values or error strings in the content
+    const hasUndefinedValues = content.includes('undefined') || 
+                              content.includes('NaN') || 
+                              content.includes('[object Object]');
+    
+    return hasRequiredSections && !hasUndefinedValues;
+  } catch (error) {
+    console.error('Content validation error:', error);
     return false;
   }
-  
-  // Check for essential sections
-  const requiredSections = [
-    '# Model Card:',
-    '## Model Overview',
-    '### Performance Metrics',
-    '### Compliance Assessment'
-  ];
-  
-  return requiredSections.every(section => content.includes(section));
 };
