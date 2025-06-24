@@ -111,7 +111,38 @@ The Dermatology AI Model Card Generator is a full-stack web application that aut
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+- **June 24, 2025**: Initial setup and migration to Replit environment
+- **June 24, 2025**: Successfully migrated from Node.js/TypeScript to Python/FastAPI
+  - Created complete Python backend using FastAPI framework
+  - Implemented all core services: web scraping, paper extraction, GitHub extraction
+  - Maintained API compatibility with original Node.js endpoints
+  - Added Python dependencies: FastAPI, BeautifulSoup4, httpx, Pydantic
+  - Both Node.js and Python versions are now available and functional
+
+## Python Implementation Details
+
+### Python Backend Architecture
+- **Framework**: FastAPI with async/await support
+- **HTTP Client**: httpx for async HTTP requests
+- **HTML Parsing**: BeautifulSoup4 for web scraping
+- **Data Validation**: Pydantic for request/response models
+- **Development Server**: Uvicorn with hot reload
+
+### Available Scripts
+- `npm run dev` - Run Node.js/TypeScript version
+- `npm run dev:python` - Run Python/FastAPI version
+- `npm run start:python` - Production Python server
+
+### Python API Endpoints
+- `POST /api/scrape` - Website data extraction
+- `POST /api/extract-paper` - Academic paper extraction via DOI
+- `POST /api/github-extract` - GitHub repository analysis
+- `GET /api/health` - Health check endpoint
+
 ## Changelog
 
 Changelog:
 - June 24, 2025. Initial setup
+- June 24, 2025. Complete Python migration with full feature parity
